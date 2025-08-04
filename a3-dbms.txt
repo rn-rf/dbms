@@ -1,0 +1,378 @@
+--Create a Vew1 to display Lit all customes in alphabetical order who have loan from Kalyani Nagar branch
+
+mysql> CREATE VIEW View1 AS
+    -> SELECT DISTINCT c.cust_name, c.cust_street, c.cust_city
+    -> FROM Customer c
+    -> JOIN Borrower b ON c.cust_name = b.cust_name
+    -> JOIN Loan l ON b.loan_no = l.loan_no
+    -> WHERE l.branch_name = 'Kalyani Nagar'
+    -> ORDER BY c.cust_name ASC;
+Query OK, 0 rows affected (0.11 sec)
+
+mysql> SELECT * FROM View1;
++--------------+-------------+-----------+
+| cust_name    | cust_street | cust_city |
++--------------+-------------+-----------+
+| Mitali Desai | JM Road     | Pune      |
++--------------+-------------+-----------+
+1 row in set (0.01 sec)
+
+
+
+
+-- Create View2 on branch table by selecting any two columns and perform insert, update, delete operations.
+mysql> CREATE VIEW View2 AS
+    -> SELECT branch_name, assets 
+    -> FROM Branch;
+Query OK, 0 rows affected (0.11 sec)
+
+mysql> ALTER TABLE Branch
+    -> MODIFY branch_city varchar(50) NOT NULL DEFAULT 'Pune';
+Query OK, 0 rows affected (0.10 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO View2 
+    -> VALUES ("Vishrantwadi", 3400000.00);
+Query OK, 1 row affected (0.06 sec)
+
+mysql> SELECT * FROM View2;
++----------------+------------+
+| branch_name    | assets     |
++----------------+------------+
+| Charni Road    | 7600000.00 |
+| Kalyani Nagar  | 6300000.00 |
+| Lokmanya Nagar | 5800000.00 |
+| Seawoods       | 8400000.00 |
+| Shanivar Peth  | 9200000.00 |
+| Vishrantwadi   | 3400000.00 |
++----------------+------------+
+6 rows in set (0.00 sec)
+
+mysql> UPDATE View2 
+    -> SET assets = 5400000.00
+    -> WHERE branch_name = 'Vishrantwadi';
+Query OK, 1 row affected (0.07 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT * FROM View2;
++----------------+------------+
+| branch_name    | assets     |
++----------------+------------+
+| Charni Road    | 7600000.00 |
+| Kalyani Nagar  | 6300000.00 |
+| Lokmanya Nagar | 5800000.00 |
+| Seawoods       | 8400000.00 |
+| Shanivar Peth  | 9200000.00 |
+| Vishrantwadi   | 5400000.00 |
++----------------+------------+
+6 rows in set (0.00 sec)
+
+mysql> DELETE FROM View2  WHERE branch_name = 'Vishrantwadi';
+Query OK, 1 row affected (0.07 sec)
+
+mysql> SELECT * FROM View2;
++----------------+------------+
+| branch_name    | assets     |
++----------------+------------+
+| Charni Road    | 7600000.00 |
+| Kalyani Nagar  | 6300000.00 |
+| Lokmanya Nagar | 5800000.00 |
+| Seawoods       | 8400000.00 |
+| Shanivar Peth  | 9200000.00 |
++----------------+------------+
+5 rows in set (0.00 sec)
+
+
+
+-- Create View3 on borrower and depositor table by selecting nay one column from each table perform insert update delete operations.
+mysql> CREATE VIEW View3 AS
+    -> SELECT Depositor.acc_no, Borrower.loan_no
+    -> FROM Depositor
+    -> JOIN Borrower ON Depositor.cust_name = Borrower.cust_name;
+Query OK, 0 rows affected (0.15 sec)
+
+mysql> SELECT * FROM View3;
++--------+---------+
+| acc_no | loan_no |
++--------+---------+
+|    101 |     201 |
+|    102 |     202 |
+|    103 |     204 |
+|    104 |     203 |
+|    105 |     205 |
++--------+---------+
+5 rows in set (0.00 sec)
+
+mysql> INSERT INTO View3(acc_no, loan_no)  VALUES (106, 206);
+ERROR 1393 (HY000): Can not modify more than one base table through a join view 'bms.View3'
+mysql> 
+
+
+
+-- Create Union of left and right join for all customers who have an account or loan or both at bank
+mysql> SELECT c.cust_name, c.cust_street, c.cust_city,
+    ->        a.acc_no, a.branch_name AS acc_branch, a.balance,
+    ->        NULL AS loan_no, NULL AS loan_branch, NULL AS loan_amount
+    -> FROM Customer c
+    -> LEFT JOIN Depositor d ON c.cust_name = d.cust_name
+    -> LEFT JOIN Account a ON d.acc_no = a.acc_no
+    -> WHERE a.acc_no IS NOT NULL
+    -> UNION
+    -> SELECT c.cust_name, c.cust_street, c.cust_city,
+    ->        NULL AS acc_no, NULL AS acc_branch, NULL AS balance,
+    ->        l.loan_no, l.branch_name AS loan_branch, l.amount AS loan_amount
+    -> FROM Customer c
+    -> RIGHT JOIN Borrower b ON c.cust_name = b.cust_name
+    -> RIGHT JOIN Loan l ON b.loan_no = l.loan_no
+    -> WHERE l.loan_no IS NOT NULL;
++---------------+---------------+-------------+--------+----------------+----------+---------+----------------+-------------+
+| cust_name     | cust_street   | cust_city   | acc_no | acc_branch     | balance  | loan_no | loan_branch    | loan_amount |
++---------------+---------------+-------------+--------+----------------+----------+---------+----------------+-------------+
+| Aryan Rathod  | Sinhagad Road | Pune        |    101 | Shanivar Peth  | 26000.00 |    NULL | NULL           |        NULL |
+| Palash Yadav  | Gandhibagh    | Nagpur      |    102 | Lokmanya Nagar |  5500.00 |    NULL | NULL           |        NULL |
+| Tejas Gokhale | Marine Lines  | Mumbai      |    103 | Charni Road    | 16000.00 |    NULL | NULL           |        NULL |
+| Mitali Desai  | JM Road       | Pune        |    104 | Kalyani Nagar  | 31000.00 |    NULL | NULL           |        NULL |
+| Krupa Joshi   | Sector 29     | Navi Mumbai |    105 | Seawoods       |  9500.00 |    NULL | NULL           |        NULL |
+| Aryan Rathod  | Sinhagad Road | Pune        |   NULL | NULL           |     NULL |     201 | Shanivar Peth  |   140000.00 |
+| Palash Yadav  | Gandhibagh    | Nagpur      |   NULL | NULL           |     NULL |     202 | Lokmanya Nagar |    99000.00 |
+| Mitali Desai  | JM Road       | Pune        |   NULL | NULL           |     NULL |     203 | Kalyani Nagar  |   128000.00 |
+| Tejas Gokhale | Marine Lines  | Mumbai      |   NULL | NULL           |     NULL |     204 | Charni Road    |   108000.00 |
+| Krupa Joshi   | Sector 29     | Navi Mumbai |   NULL | NULL           |     NULL |     205 | Seawoods       |   133000.00 |
++---------------+---------------+-------------+--------+----------------+----------+---------+----------------+-------------+
+10 rows in set (0.00 sec)
+
+
+
+
+-- Creating Companies
+mysql> CREATE TABLE Companies(comp_id VARCHAR(4), name VARCHAR(50), cost INT, year YEAR(4));
+Query OK, 0 rows affected, 1 warning (0.95 sec)
+
+mysql> DESC Companies;
++---------+-------------+------+-----+---------+-------+
+| Field   | Type        | Null | Key | Default | Extra |
++---------+-------------+------+-----+---------+-------+
+| comp_id | varchar(4)  | YES  |     | NULL    |       |
+| name    | varchar(50) | YES  |     | NULL    |       |
+| cost    | int         | YES  |     | NULL    |       |
+| year    | year        | YES  |     | NULL    |       |
++---------+-------------+------+-----+---------+-------+
+4 rows in set (0.01 sec)
+
+mysql> INSERT INTO Companies VALUES
+    -> ('C001', 'ONGC', 2000, 2010),
+    -> ('C002', 'HPCL', 2500, 2012),
+    -> ('C005', 'IOCL', 1000, 2014),
+    -> ('C006', 'BHEL', 3000, 2015);
+Query OK, 4 rows affected (0.10 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql> SELECT * FROM Companies;
++---------+------+------+------+
+| comp_id | name | cost | year |
++---------+------+------+------+
+| C001    | ONGC | 2000 | 2010 |
+| C002    | HPCL | 2500 | 2012 |
+| C005    | IOCL | 1000 | 2014 |
+| C006    | BHEL | 3000 | 2015 |
++---------+------+------+------+
+4 rows in set (0.00 sec)
+
+mysql> CREATE TABLE Orders(comp_id VARCHAR(4), domain VARCHAR(50), quantity INT);
+Query OK, 0 rows affected (0.85 sec)
+
+mysql> DESC Orders;
++----------+-------------+------+-----+---------+-------+
+| Field    | Type        | Null | Key | Default | Extra |
++----------+-------------+------+-----+---------+-------+
+| comp_id  | varchar(4)  | YES  |     | NULL    |       |
+| domain   | varchar(50) | YES  |     | NULL    |       |
+| quantity | int         | YES  |     | NULL    |       |
++----------+-------------+------+-----+---------+-------+
+3 rows in set (0.01 sec)
+
+mysql> INSERT INTO Orders VALUES
+    -> ('C001', 'Oil', 109),
+    -> ('C002', 'Gas', 121),
+    -> ('C005', 'Telecom', 115);
+Query OK, 3 rows affected (0.08 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+mysql> SELECT * FROM Orders;
++---------+---------+----------+
+| comp_id | domain  | quantity |
++---------+---------+----------+
+| C001    | Oil     |      109 |
+| C002    | Gas     |      121 |
+| C005    | Telecom |      115 |
++---------+---------+----------+
+3 rows in set (0.00 sec)
+
+-- Find names, costs, domains and quantites for companies using inner join.
+mysql> SELECT c.name, c.cost, o.domain, o.quantity
+    -> FROM Companies c
+    -> INNER JOIN Orders o ON c.comp_id = o.comp_id;
++------+------+---------+----------+
+| name | cost | domain  | quantity |
++------+------+---------+----------+
+| ONGC | 2000 | Oil     |      109 |
+| HPCL | 2500 | Gas     |      121 |
+| IOCL | 1000 | Telecom |      115 |
++------+------+---------+----------+
+3 rows in set (0.00 sec)
+
+mysql> 
+
+-- Find names, costs, domains and quantites for companies using outer join.
+mysql> SELECT c.name, c.cost, o.domain, o.quantity
+    -> FROM Companies c
+    -> LEFT JOIN Orders o ON c.comp_id = o.comp_id
+    -> 
+    -> UNION
+    -> 
+    -> SELECT c.name, c.cost, o.domain, o.quantity
+    -> FROM Companies c
+    -> RIGHT JOIN Orders o ON c.comp_id = o.comp_id;
++------+------+---------+----------+
+| name | cost | domain  | quantity |
++------+------+---------+----------+
+| ONGC | 2000 | Oil     |      109 |
+| HPCL | 2500 | Gas     |      121 |
+| IOCL | 1000 | Telecom |      115 |
+| BHEL | 3000 | NULL    |     NULL |
++------+------+---------+----------+
+4 rows in set (0.01 sec)
+
+mysql> 
+
+-- Find names, costs, domains and quantites for companies using right join.
+mysql> SELECT c.name, c.cost, o.domain, o.quantity
+    -> FROM Companies c
+    -> RIGHT JOIN Orders o ON c.comp_id = o.comp_id;
++------+------+---------+----------+
+| name | cost | domain  | quantity |
++------+------+---------+----------+
+| ONGC | 2000 | Oil     |      109 |
+| HPCL | 2500 | Gas     |      121 |
+| IOCL | 1000 | Telecom |      115 |
++------+------+---------+----------+
+3 rows in set (0.00 sec)
+
+mysql> 
+
+
+-- Find names, costs, domains and quantites for companies using union operator.
+mysql> SELECT name, CAST(cost AS CHAR) AS info, NULL AS domain, NULL AS quantity
+    -> FROM Companies
+    -> 
+    -> UNION
+    -> 
+    -> SELECT NULL AS name, NULL AS cost, domain, CAST(quantity AS CHAR)
+    -> FROM Orders;
++------+------+---------+----------+
+| name | info | domain  | quantity |
++------+------+---------+----------+
+| ONGC | 2000 | NULL    | NULL     |
+| HPCL | 2500 | NULL    | NULL     |
+| IOCL | 1000 | NULL    | NULL     |
+| BHEL | 3000 | NULL    | NULL     |
+| NULL | NULL | Oil     | 109      |
+| NULL | NULL | Gas     | 121      |
+| NULL | NULL | Telecom | 115      |
++------+------+---------+----------+
+7 rows in set (0.00 sec)
+
+mysql> 
+
+
+-- Create View View1 by selecting both tables to show company name and quantities.
+mysql> CREATE VIEW View1 AS
+    -> SELECT c.name, o.quantity
+    -> FROM Companies c
+    -> LEFT JOIN Orders o ON c.comp_id = o.comp_id;
+Query OK, 0 rows affected (0.11 sec)
+
+mysql> SELECT * FROM View1;
++------+----------+
+| name | quantity |
++------+----------+
+| ONGC |      109 |
+| HPCL |      121 |
+| IOCL |      115 |
+| BHEL |     NULL |
++------+----------+
+4 rows in set (0.00 sec)
+
+mysql> 
+
+-- Create View2 on branch table by selecting any two columns and perform insert, update, delete operation.
+mysql> CREATE VIEW View2 AS
+    -> SELECT comp_id, name
+    -> FROM Companies;
+Query OK, 0 rows affected (0.12 sec)
+
+mysql> SELECT * FROM View2;
++---------+------+
+| comp_id | name |
++---------+------+
+| C001    | ONGC |
+| C002    | HPCL |
+| C005    | IOCL |
+| C006    | BHEL |
++---------+------+
+4 rows in set (0.00 sec)
+
+mysql> INSERT INTO View2 (comp_id, name) VALUES ('C007', 'NEWCO');
+Query OK, 1 row affected (0.07 sec)
+
+mysql> UPDATE View2
+    -> SET name = 'UPDATEDCO'
+    -> WHERE comp_id = 'C007';
+Query OK, 1 row affected (0.05 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> DELETE FROM View2
+    -> WHERE comp_id = 'C007';
+Query OK, 1 row affected (0.07 sec)
+
+mysql> SELECT * FROM View2;
++---------+------+
+| comp_id | name |
++---------+------+
+| C001    | ONGC |
+| C002    | HPCL |
+| C005    | IOCL |
+| C006    | BHEL |
++---------+------+
+4 rows in set (0.00 sec)
+
+mysql> 
+
+
+-- Display content of View1, View2
+mysql> SELECT * FROM View1, View2;
++------+----------+---------+------+
+| name | quantity | comp_id | name |
++------+----------+---------+------+
+| BHEL |     NULL | C001    | ONGC |
+| IOCL |      115 | C001    | ONGC |
+| HPCL |      121 | C001    | ONGC |
+| ONGC |      109 | C001    | ONGC |
+| BHEL |     NULL | C002    | HPCL |
+| IOCL |      115 | C002    | HPCL |
+| HPCL |      121 | C002    | HPCL |
+| ONGC |      109 | C002    | HPCL |
+| BHEL |     NULL | C005    | IOCL |
+| IOCL |      115 | C005    | IOCL |
+| HPCL |      121 | C005    | IOCL |
+| ONGC |      109 | C005    | IOCL |
+| BHEL |     NULL | C006    | BHEL |
+| IOCL |      115 | C006    | BHEL |
+| HPCL |      121 | C006    | BHEL |
+| ONGC |      109 | C006    | BHEL |
++------+----------+---------+------+
+16 rows in set (0.00 sec)
+
+mysql> 
+
+
